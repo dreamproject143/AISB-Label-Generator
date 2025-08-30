@@ -3,7 +3,6 @@ import tempfile
 from flask import Flask, render_template, request, send_file, jsonify
 import pdfplumber
 import re
-from datetime import datetime
 import openpyxl
 from openpyxl.styles import Font, Border, Side, Alignment
 from openpyxl.drawing.image import Image
@@ -127,7 +126,21 @@ def process_pdfs(files):
             parts = line.split()
             std_pkg_qty = parts[-3]
             description_tokens = parts[2:-3]
-            part_no = parts[2] if re.match(r'[A-Z]-\d{3,}', parts[2]) else parts[1]
+
+            # Original logic for part_no
+            if len(parts) > 2 and re.match(r'[A-Z]-\d{3,}', parts[2]):
+                part_no = parts[2]
+            else:
+                internal_code = parts[1]
+                match = re.search(r'([A-Z])[A-Z0-9]*-?([0-9]{3,})', internal_code)
+                if match:
+                    part_no = f"{match.group(1)}-{match.group(2)}"
+                else:
+                    part_no = internal_code
+
+            # Original logic for part_name
+            if description_tokens and description_tokens[0] == part_no:
+                description_tokens = description_tokens[1:]
             description = " ".join(description_tokens)
 
             start_idx = lines.index(line) + 1
