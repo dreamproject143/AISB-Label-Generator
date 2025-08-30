@@ -1,6 +1,5 @@
 import os
 import tempfile
-import shutil
 from flask import Flask, render_template, request, send_file, jsonify
 import pdfplumber
 import re
@@ -11,18 +10,11 @@ from openpyxl.drawing.image import Image
 
 app = Flask(__name__)
 
-# Temporary directories for uploads and outputs
-UPLOAD_FOLDER = os.path.join(tempfile.gettempdir(), 'uploads')
-OUTPUT_FOLDER = os.path.join(tempfile.gettempdir(), 'outputs')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-
 # Logo path
 logo_file_path = os.path.join(os.path.dirname(__file__), 'logo.png')
 
 
 def draw_label_in_excel(sheet, start_row, data):
-    """This function draws a single, formatted label onto the Excel sheet."""
     bold_font_large = Font(name='Arial', size=16, bold=True)
     bold_font_medium = Font(name='Arial', size=12, bold=True)
     bold_font_small = Font(name='Arial', size=11, bold=True)
@@ -107,90 +99,60 @@ def draw_label_in_excel(sheet, start_row, data):
         img.height = 50
         img.width = 85
         sheet.add_image(img, f'A{start_row}')
-    else:
-        sheet.cell(row=start_row, column=1, value="Logo not found").alignment = align_center
 
 
-def generate_excel(pdf_folder):
+def process_pdfs(files):
     workbook = openpyxl.Workbook()
     sheet = workbook.active
     sheet.title = "Labels"
-
-    pdf_files = [f for f in os.listdir(pdf_folder) if f.lower().endswith(".pdf")]
-    if not pdf_files:
-        return None
-
     current_excel_row = 2
 
-    for pdf_file in pdf_files:
-        pdf_path = os.path.join(pdf_folder, pdf_file)
-        try:
-            with pdfplumber.open(pdf_path) as pdf:
-                full_text = ""
-                for page in pdf.pages:
-                    text = page.extract_text()
-                    if text:
-                        full_text += text + "\n"
+    for file in files:
+        with pdfplumber.open(file) as pdf:
+            full_text = ""
+            for page in pdf.pages:
+                text = page.extract_text()
+                if text:
+                    full_text += text + "\n"
 
-            issue_date_match = re.search(r"Issue Date\s*:\s*(\d{2}-\w{3}-\d{4})", full_text)
-            delivery_date_match = re.search(r"Delivery Date\s*:\s*(\d{2}-\w{3}-\d{4})", full_text)
-            issue_date = issue_date_match.group(1) if issue_date_match else "N/A"
-            delivery_date = delivery_date_match.group(1) if delivery_date_match else "N/A"
+        issue_date_match = re.search(r"Issue Date\s*:\s*(\d{2}-\w{3}-\d{4})", full_text)
+        delivery_date_match = re.search(r"Delivery Date\s*:\s*(\d{2}-\w{3}-\d{4})", full_text)
+        issue_date = issue_date_match.group(1) if issue_date_match else "N/A"
+        delivery_date = delivery_date_match.group(1) if delivery_date_match else "N/A"
 
-            lines = [l.strip() for l in full_text.split("\n") if l.strip()]
-            item_lines = [l for l in lines if re.match(r'^\d+\s+[A-Z0-9\-]+\s+.*EA$', l)]
+        lines = [l.strip() for l in full_text.split("\n") if l.strip()]
+        item_lines = [l for l in lines if re.match(r'^\d+\s+[A-Z0-9\-]+\s+.*EA$', l)]
 
-            if not item_lines:
-                continue
+        for i, line in enumerate(item_lines):
+            parts = line.split()
+            std_pkg_qty = parts[-3]
+            description_tokens = parts[2:-3]
+            part_no = parts[2] if re.match(r'[A-Z]-\d{3,}', parts[2]) else parts[1]
+            description = " ".join(description_tokens)
 
-            for i, line in enumerate(item_lines):
-                parts = line.split()
-                std_pkg_qty = parts[-3]
-                description_tokens = parts[2:-3]
-                if len(parts) > 2 and re.match(r'[A-Z]-\d{3,}', parts[2]):
-                    part_no = parts[2]
-                else:
-                    internal_code = parts[1]
-                    match = re.search(r'([A-Z])[A-Z0-9]*-?([0-9]{3,})', internal_code)
-                    if match:
-                        part_no = f"{match.group(1)}-{match.group(2)}"
-                    else:
-                        part_no = internal_code
-                if description_tokens and description_tokens[0] == part_no:
-                    description_tokens = description_tokens[1:]
-                description = " ".join(description_tokens)
+            start_idx = lines.index(line) + 1
+            end_idx = lines.index(item_lines[i + 1]) if i + 1 < len(item_lines) else len(lines)
+            block_lines = lines[start_idx:end_idx]
+            kanban_cards = []
+            for bl in block_lines:
+                kanban_cards.extend(re.findall(r'\b\d{10}\b', bl))
 
-                start_idx = lines.index(line) + 1
-                end_idx = lines.index(item_lines[i + 1]) if i + 1 < len(item_lines) else len(lines)
-                block_lines = lines[start_idx:end_idx]
-                kanban_cards = []
-                for bl in block_lines:
-                    kanban_cards.extend(re.findall(r'\b\d{10}\b', bl))
+            for card in kanban_cards:
+                label_info = {
+                    "part_no": part_no,
+                    "part_name": description,
+                    "qty": std_pkg_qty,
+                    "kanban_no": card,
+                    "issue_date": issue_date,
+                    "delivery_date": delivery_date
+                }
+                draw_label_in_excel(sheet, current_excel_row, label_info)
+                current_excel_row += 8
 
-                if not kanban_cards:
-                    continue
-
-                for card in kanban_cards:
-                    label_info = {
-                        "part_no": part_no,
-                        "part_name": description,
-                        "qty": std_pkg_qty,
-                        "kanban_no": card,
-                        "issue_date": issue_date,
-                        "delivery_date": delivery_date
-                    }
-
-                    draw_label_in_excel(sheet, current_excel_row, label_info)
-                    current_excel_row += 8
-
-        except Exception:
-            continue
-
-    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    output_filename = f"Generated_Labels_{current_time}.xlsx"
-    output_file_path = os.path.join(OUTPUT_FOLDER, output_filename)
-    workbook.save(output_file_path)
-    return output_file_path
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
+    workbook.save(temp_file.name)
+    temp_file.close()
+    return temp_file.name
 
 
 @app.route('/')
@@ -199,24 +161,18 @@ def home():
 
 
 @app.route('/upload', methods=['POST'])
-def upload_files():
+def upload_and_process():
     if 'files' not in request.files:
         return jsonify({"success": False, "message": "No files uploaded"})
 
-    for file in request.files.getlist('files'):
-        if file.filename.endswith('.pdf'):
-            file.save(os.path.join(UPLOAD_FOLDER, file.filename))
+    files = request.files.getlist('files')
+    pdf_files = [file for file in files if file.filename.endswith('.pdf')]
 
-    return jsonify({"success": True, "message": "Files uploaded successfully"})
+    if not pdf_files:
+        return jsonify({"success": False, "message": "No valid PDF files"})
 
-
-@app.route('/process', methods=['POST'])
-def process_files():
-    excel_path = generate_excel(UPLOAD_FOLDER)
-    if not excel_path:
-        return jsonify({"success": False, "message": "No PDFs processed"})
-
-    return send_file(excel_path, as_attachment=True)
+    excel_path = process_pdfs(pdf_files)
+    return send_file(excel_path, as_attachment=True, download_name="Generated_Labels.xlsx")
 
 
 if __name__ == '__main__':
