@@ -168,11 +168,10 @@
                 <input type="file" name="files" id="fileInput" multiple accept=".pdf" hidden>
             </label>
             <span id="fileLabel">No files chosen</span>
-            <button type="button" onclick="uploadFile()">📤 Upload Files</button>
+            <button type="button" onclick="uploadAndDownload()">📤 Upload & Generate Excel</button>
         </form>
         
         <p id="message"></p>
-        <button onclick="processAndDownload()">📊 Generate Excel Report</button>
     </div>
 
     <p class="thank-you">Thank you for giving chance, Mr. Bryan</p>
@@ -184,7 +183,7 @@
                 `${this.files.length} PDF file(s) selected` : "No files chosen";
         });
 
-        function uploadFile() {
+        function uploadAndDownload() {
             const formData = new FormData();
             const files = document.getElementById('fileInput').files;
             
@@ -201,46 +200,32 @@
                 formData.append('files', files[i]);
             }
 
-            setMessage('Uploading and processing files...', '#4CAF50');
+            setMessage('Uploading and generating Excel file...', '#4CAF50');
 
             fetch('/upload', { 
                 method: 'POST', 
                 body: formData 
             })
-            .then(response => response.json())
-            .then(data => {
-                setMessage(data.message, data.success ? '#4CAF50' : '#ff5252');
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error generating Excel file');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Generated_Labels.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                setMessage('Excel file downloaded successfully!', '#4CAF50');
             })
             .catch(error => {
-                setMessage('Error uploading files', '#ff5252');
+                setMessage(error.message, '#ff5252');
                 console.error('Error:', error);
             });
-        }
-
-        function processAndDownload() {
-            setMessage('Generating Excel file...', '#4CAF50');
-            
-            fetch('/process', { method: 'POST' })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Error generating Excel file');
-                    }
-                    return response.blob();
-                })
-                .then(blob => {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'Generated_Labels.xlsx';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    setMessage('Excel file downloaded successfully!', '#4CAF50');
-                })
-                .catch(error => {
-                    setMessage(error.message, '#ff5252');
-                    console.error('Error:', error);
-                });
         }
 
         function setMessage(msg, color) {
