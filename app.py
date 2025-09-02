@@ -6,6 +6,7 @@ import re
 import openpyxl
 from openpyxl.styles import Font, Border, Side, Alignment
 from openpyxl.drawing.image import Image
+from openpyxl.worksheet.pagebreak import Break # <-- Added this for page breaks
 
 app = Flask(__name__)
 
@@ -14,28 +15,34 @@ logo_file_path = os.path.join(os.path.dirname(__file__), 'logo.png')
 
 
 def draw_label_in_excel(sheet, start_row, data):
+    # --- Define Styles (matched with your local code) ---
     bold_font_large = Font(name='Arial', size=16, bold=True)
     bold_font_medium = Font(name='Arial', size=12, bold=True)
     bold_font_small = Font(name='Arial', size=11, bold=True)
+    bold_font_qty = Font(name='Arial', size=14, bold=True) # <-- Added new font style for QTY
 
     align_center = Alignment(horizontal='center', vertical='center', wrap_text=True)
     align_left_no_wrap = Alignment(horizontal='left', vertical='center', wrap_text=False)
 
-    thick_side = Side(style='thick')
+    # --- Changed border style from 'thick' to 'medium' ---
+    medium_side = Side(style='medium')
     thin_side = Side(style='thin')
-    border_thick_all = Border(left=thick_side, right=thick_side, top=thick_side, bottom=thick_side)
+    border_medium_all = Border(left=medium_side, right=medium_side, top=medium_side, bottom=medium_side)
 
+    # --- Adjusted Column Widths and Row Heights (matched with your local code) ---
     sheet.column_dimensions['A'].width = 25
-    sheet.column_dimensions['B'].width = 15
+    sheet.column_dimensions['B'].width = 12
     sheet.column_dimensions['C'].width = 20
     sheet.column_dimensions['D'].width = 25
-    sheet.row_dimensions[start_row].height = 40
-    sheet.row_dimensions[start_row + 1].height = 40
-    sheet.row_dimensions[start_row + 2].height = 23
-    sheet.row_dimensions[start_row + 3].height = 30
-    sheet.row_dimensions[start_row + 4].height = 22
-    sheet.row_dimensions[start_row + 5].height = 40
+    
+    sheet.row_dimensions[start_row].height = 38
+    sheet.row_dimensions[start_row + 1].height = 38
+    sheet.row_dimensions[start_row + 2].height = 22
+    sheet.row_dimensions[start_row + 3].height = 28
+    sheet.row_dimensions[start_row + 4].height = 21
+    sheet.row_dimensions[start_row + 5].height = 38
 
+    # --- Merge Cells (no changes here) ---
     sheet.merge_cells(start_row=start_row, start_column=1, end_row=start_row, end_column=1)
     sheet.merge_cells(start_row=start_row, start_column=2, end_row=start_row, end_column=4)
     sheet.merge_cells(start_row=start_row + 1, start_column=1, end_row=start_row + 1, end_column=1)
@@ -48,6 +55,7 @@ def draw_label_in_excel(sheet, start_row, data):
     sheet.merge_cells(start_row=start_row + 4, start_column=2, end_row=start_row + 5, end_column=2)
     sheet.merge_cells(start_row=start_row + 4, start_column=3, end_row=start_row + 5, end_column=3)
 
+    # --- Place Data and Apply Styles (matched with your local code) ---
     cell = sheet.cell(row=start_row, column=2, value="JOONHEE ENGINEERING SDN. BHD.")
     cell.font = Font(name='Arial', size=18, bold=True)
     cell.alignment = align_left_no_wrap
@@ -62,7 +70,7 @@ def draw_label_in_excel(sheet, start_row, data):
 
     qty_text = f"AISB\nQTY: {data['qty']}"
     qty_cell = sheet.cell(row=start_row + 1, column=4, value=qty_text)
-    qty_cell.font = bold_font_medium
+    qty_cell.font = bold_font_qty # <-- Using the new font style
     qty_cell.alignment = align_center
 
     sheet.cell(row=start_row + 2, column=1, value="PART NO.").font = bold_font_small
@@ -85,13 +93,15 @@ def draw_label_in_excel(sheet, start_row, data):
         for c in range(1, 5):
             sheet.cell(row=r, column=c).alignment = align_center
 
+    # --- Apply Borders (using medium style) ---
     for r in range(start_row, start_row + 6):
         for c in range(1, 5):
-            sheet.cell(row=r, column=c).border = border_thick_all
+            sheet.cell(row=r, column=c).border = border_medium_all
 
+    # --- Divider Lines (using medium style) ---
     for col in range(1, 5):
-        sheet.cell(row=start_row + 2, column=col).border = Border(bottom=thin_side, left=thick_side, right=thick_side, top=thick_side)
-        sheet.cell(row=start_row + 4, column=col).border = Border(bottom=thin_side, left=thick_side, right=thick_side, top=thick_side)
+        sheet.cell(row=start_row + 2, column=col).border = Border(bottom=thin_side, left=medium_side, right=medium_side, top=medium_side)
+        sheet.cell(row=start_row + 4, column=col).border = Border(bottom=thin_side, left=medium_side, right=medium_side, top=medium_side)
 
     if os.path.exists(logo_file_path):
         img = Image(logo_file_path)
@@ -104,8 +114,18 @@ def process_pdfs(files):
     workbook = openpyxl.Workbook()
     sheet = workbook.active
     sheet.title = "Labels"
-    current_excel_row = 2
+    
+    # --- Added Page Setup for A4 Printing (from your local code) ---
+    sheet.page_setup.paperSize = sheet.PAPERSIZE_A4
+    sheet.page_setup.orientation = sheet.ORIENTATION_PORTRAIT
+    sheet.page_margins.top = 0
+    sheet.page_margins.bottom = 0
+    sheet.page_margins.left = 0
+    sheet.page_margins.right = 0
+    sheet.sheet_view.showGridLines = False
 
+    # --- Step 1: Gather all labels from all PDFs into a single list ---
+    all_labels_info = []
     for file in files:
         with pdfplumber.open(file) as pdf:
             full_text = ""
@@ -127,7 +147,6 @@ def process_pdfs(files):
             std_pkg_qty = parts[-3]
             description_tokens = parts[2:-3]
 
-            # Original logic for part_no
             if len(parts) > 2 and re.match(r'[A-Z]-\d{3,}', parts[2]):
                 part_no = parts[2]
             else:
@@ -138,7 +157,6 @@ def process_pdfs(files):
                 else:
                     part_no = internal_code
 
-            # Original logic for part_name
             if description_tokens and description_tokens[0] == part_no:
                 description_tokens = description_tokens[1:]
             description = " ".join(description_tokens)
@@ -159,9 +177,21 @@ def process_pdfs(files):
                     "issue_date": issue_date,
                     "delivery_date": delivery_date
                 }
-                draw_label_in_excel(sheet, current_excel_row, label_info)
-                current_excel_row += 8
+                # Instead of drawing here, we add it to our list
+                all_labels_info.append(label_info)
 
+    # --- Step 2: Draw all collected labels with page break logic ---
+    current_excel_row = 2
+    total_labels = len(all_labels_info)
+    for i, label_data in enumerate(all_labels_info):
+        draw_label_in_excel(sheet, current_excel_row, label_data)
+        current_excel_row += 7  # Add a 1-row gap for cutting
+        
+        # This adds a page break after every 4th label
+        if (i + 1) % 4 == 0 and (i + 1) < total_labels:
+            sheet.row_breaks.append(Break(id=current_excel_row - 1))
+
+    # --- Save and return the file ---
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx')
     workbook.save(temp_file.name)
     temp_file.close()
@@ -170,6 +200,7 @@ def process_pdfs(files):
 
 @app.route('/')
 def home():
+    # Assuming your index.html is in a 'templates' folder
     return render_template('index.html')
 
 
