@@ -5,39 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Label Generator | Made by Ram</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* --- NEW --- Keyframes for a more vibrant, slower animated background */
         @keyframes gradientBG {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
 
-        /* --- NEW --- Keyframes for the button's glowing effect */
         @keyframes glowing {
             0% { box-shadow: 0 0 5px #e040fb, 0 0 10px #e040fb, 0 0 15px #e040fb; }
             50% { box-shadow: 0 0 20px #76ff03, 0 0 30px #76ff03, 0 0 40px #76ff03; }
             100% { box-shadow: 0 0 5px #e040fb, 0 0 10px #e040fb, 0 0 15px #e040fb; }
         }
 
+        /* --- NEW --- Animation for the blinking border */
+        @keyframes blinkBorder {
+            0%   { border-color: #e040fb; box-shadow: 0 0 10px #e040fb; }
+            25%  { border-color: #76ff03; box-shadow: 0 0 10px #76ff03; }
+            50%  { border-color: #23a6d5; box-shadow: 0 0 10px #23a6d5; }
+            75%  { border-color: #e73c7e; box-shadow: 0 0 10px #e73c7e; }
+            100% { border-color: #e040fb; box-shadow: 0 0 10px #e040fb; }
+        }
+
         body {
-            /* --- CHANGED --- Using a new font for a modern look */
             font-family: 'Poppins', sans-serif;
             margin: 0;
             padding: 0;
-            /* --- CHANGED --- Using a much more colorful and vibrant gradient */
-            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background: linear-gradient(-45deg, #020024, #090979, #001d3d, #003566);
             background-size: 400% 400%;
-            animation: gradientBG 18s ease infinite;
+            animation: gradientBG 25s ease infinite;
             color: white;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             position: relative;
+            overflow: hidden;
             -webkit-tap-highlight-color: transparent;
+        }
+
+        #snakeCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
         }
 
         .container {
@@ -46,7 +61,6 @@
             width: 90%;
             max-width: 600px; 
             padding: 30px;
-            /* --- CHANGED --- Slightly more transparent background to show off the new BG */
             background: rgba(0, 0, 0, 0.3);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
@@ -61,7 +75,6 @@
             font-size: clamp(28px, 4vw, 40px);
             font-weight: 700;
             margin-bottom: 5px;
-            /* --- NEW --- Animated gradient text effect! */
             background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
             background-size: 400% 400%;
             animation: gradientBG 18s ease infinite;
@@ -75,8 +88,8 @@
             font-weight: 400;
             color: rgba(255, 255, 255, 0.7);
             display: block;
-            margin-top: -5px; /* Adjust position slightly */
-             -webkit-text-fill-color: rgba(255, 255, 255, 0.7); /* Fallback for author text */
+            margin-top: -5px;
+             -webkit-text-fill-color: rgba(255, 255, 255, 0.7);
         }
 
         .subtitle {
@@ -86,13 +99,15 @@
             font-weight: 400;
         }
 
+        /* --- CHANGED --- Applying the new animation to the drop area */
         #drop-area {
-            border: 2px dashed rgba(255, 255, 255, 0.5);
+            border: 2px dashed; /* We set the color via animation */
             border-radius: 10px;
             padding: 40px 20px;
             background-color: rgba(0, 0, 0, 0.2);
             cursor: pointer;
             transition: all 0.3s ease;
+            animation: blinkBorder 4s linear infinite; /* Applying the blinking border! */
         }
 
         #drop-area p {
@@ -112,10 +127,11 @@
         }
         
         #drop-area.drag-over {
-            /* --- CHANGED --- More vibrant drag-over effect */
             border-color: #76ff03;
             background-color: rgba(118, 255, 3, 0.1);
             transform: scale(1.02);
+            animation: none; /* Pause blinking on drag over for better feedback */
+            box-shadow: 0 0 15px #76ff03;
         }
 
         #fileLabel {
@@ -128,7 +144,6 @@
         }
 
         button {
-            /* --- CHANGED --- New vibrant gradient for the button */
             background: linear-gradient(135deg, #e040fb, #007BFF);
             color: white;
             padding: 15px 25px;
@@ -142,7 +157,6 @@
             transition: all 0.3s ease;
             width: 100%;
             max-width: 300px;
-            /* --- NEW --- Applying the glowing animation */
             animation: glowing 10s linear infinite;
         }
 
@@ -154,7 +168,7 @@
         button:disabled {
             background: #555;
             cursor: not-allowed;
-            animation: none; /* Turn off glow when disabled */
+            animation: none;
             box-shadow: none;
             transform: none;
         }
@@ -193,6 +207,8 @@
     </style>
 </head>
 <body>
+    <canvas id="snakeCanvas"></canvas>
+
     <div class="container">
         <h1>Label Generator <span class="author">(Made by Ram)</span></h1>
         <p class="subtitle">Upload PDF and Generate Labels in Excel</p>
@@ -205,7 +221,7 @@
             </div>
             
             <span id="fileLabel">No files chosen</span>
-            <button type="button" id="generateBtn" onclick="uploadAndDownload()">📤 Click To Generate Label</button>
+            <button type="button" id="generateBtn" onclick="uploadAndDownload()">📤 Generate Excel</button>
         </form>
         
         <p id="message"></p>
@@ -214,13 +230,12 @@
     <p class="thank-you">Thank you for giving chance, Mr. Bryan</p>
 
     <script>
-        // Get references to our elements
+        // --- Uploader Script (Unchanged) ---
         const fileInput = document.getElementById('fileInput');
         const fileLabel = document.getElementById('fileLabel');
         const dropArea = document.getElementById('drop-area');
         const generateBtn = document.getElementById('generateBtn');
 
-        // This function updates the "X files selected" text
         function updateFileLabel() {
             const numFiles = fileInput.files.length;
             if (numFiles > 0) {
@@ -232,22 +247,15 @@
             }
         }
         
-        dropArea.addEventListener('click', () => {
-            fileInput.click();
-        });
-        
+        dropArea.addEventListener('click', () => { fileInput.click(); });
         fileInput.addEventListener('change', updateFileLabel);
 
-        // --- Drag and Drop Logic ---
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             dropArea.addEventListener(eventName, preventDefaults, false);
             document.body.addEventListener(eventName, preventDefaults, false);
         });
 
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
 
         ['dragenter', 'dragover'].forEach(eventName => {
             dropArea.addEventListener(eventName, () => dropArea.classList.add('drag-over'), false);
@@ -272,10 +280,7 @@
             const formData = new FormData();
             const files = fileInput.files;
             
-            if (files.length === 0) {
-                setMessage('Please select PDF files first', '#ff5252');
-                return;
-            }
+            if (files.length === 0) { setMessage('Please select PDF files first', '#ff5252'); return; }
 
             for (let i = 0; i < files.length; i++) {
                 if (files[i].type !== 'application/pdf') {
@@ -289,10 +294,7 @@
             generateBtn.disabled = true;
             generateBtn.innerText = 'Generating...';
 
-            fetch('/upload', { 
-                method: 'POST', 
-                body: formData 
-            })
+            fetch('/upload', { method: 'POST', body: formData })
             .then(response => {
                 if (!response.ok) {
                    return response.json().then(err => { throw new Error(err.message || 'Error generating file.'); });
@@ -320,10 +322,7 @@
                 a.remove();
                 setMessage('Download successful!', '#76ff03');
             })
-            .catch(error => {
-                setMessage(error.message, '#ff5252');
-                console.error('Error:', error);
-            })
+            .catch(error => { setMessage(error.message, '#ff5252'); console.error('Error:', error); })
             .finally(() => {
                 generateBtn.disabled = false;
                 generateBtn.innerText = '📤 Generate Excel';
@@ -336,6 +335,124 @@
             message.style.background = color + '30';
             message.style.color = color;
         }
+
+        // --- Upgraded Background Animation Script ---
+        const canvas = document.getElementById('snakeCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let particles = [];
+        let allCreatures = [];
+
+        function random(min, max) { return Math.random() * (max - min) + min; }
+
+        function resizeCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() { this.reset(); }
+            reset() { this.x = Math.random() * width; this.y = Math.random() * height; this.size = random(0.5, 2); this.speedY = random(0.1, 0.5); this.opacity = random(0.2, 0.8); }
+            update() { this.y += this.speedY; if (this.y > height) { this.y = 0; this.x = Math.random() * width; } }
+            draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`; ctx.fill(); }
+        }
+
+        class BlinkingOrb {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = random(width * 0.1, width * 0.9);
+                this.y = random(height * 0.1, height * 0.9);
+                this.maxRadius = random(30, 60);
+                this.life = 0;
+                this.lifeSpeed = random(0.005, 0.01);
+                this.fadingIn = true;
+                this.color = `hsl(${random(0, 360)}, 100%, 70%)`;
+                this.rings = 4;
+            }
+            update() {
+                if (this.fadingIn) {
+                    this.life += this.lifeSpeed;
+                    if (this.life >= 1) {
+                        this.life = 1;
+                        this.fadingIn = false;
+                    }
+                } else {
+                    this.life -= this.lifeSpeed;
+                    if (this.life <= 0) {
+                        this.reset();
+                    }
+                }
+            }
+            draw() {
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                
+                for (let i = 0; i < this.rings; i++) {
+                    const currentRadius = this.maxRadius * this.life * ((i + 1) / this.rings);
+                    const alpha = this.life * (1 - (i / this.rings));
+                    
+                    ctx.beginPath();
+                    ctx.strokeStyle = this.color;
+                    ctx.lineWidth = random(1, 3);
+                    ctx.globalAlpha = alpha;
+                    ctx.arc(this.x, this.y, currentRadius, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+                
+                ctx.restore();
+            }
+        }
+        
+        class Comet {
+            constructor() { this.reset(); this.trailLength = 20; this.history = []; }
+            reset() { this.x = Math.random() * width; this.y = 0; this.size = random(2, 4); this.speedX = random(-2, 2); this.speedY = random(4, 8); this.color = `hsla(${random(0, 60)}, 100%, 80%, 1)`; }
+            update() { this.x += this.speedX; this.y += this.speedY; this.history.push({x: this.x, y: this.y}); if(this.history.length > this.trailLength) { this.history.shift(); } if(this.y > height) { this.reset(); this.history = []; } }
+            draw() {
+                for(let i = 0; i < this.history.length; i++) {
+                    let pos = this.history[i];
+                    let opacity = i / this.history.length;
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, (i/this.history.length) * this.size, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 220, 180, ${opacity * 0.5})`;
+                    ctx.fill();
+                }
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        function initAnimations() {
+            particles = [];
+            allCreatures = [];
+            const numParticles = Math.floor((width * height) / 10000);
+            for (let i = 0; i < numParticles; i++) { particles.push(new Particle()); }
+            for (let i = 0; i < 5; i++) { allCreatures.push(new BlinkingOrb()); }
+            for (let i = 0; i < 2; i++) { allCreatures.push(new Comet()); }
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(10, 20, 40, 0.15)';
+            ctx.fillRect(0, 0, width, height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            allCreatures.forEach(c => { c.update(); c.draw(); });
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => { resizeCanvas(); initAnimations(); });
+
+        resizeCanvas();
+        initAnimations();
+        animate();
+
     </script>
 </body>
 </html>
+
