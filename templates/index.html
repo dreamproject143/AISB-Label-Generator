@@ -4,14 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Label Generator | Made by Ram</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
+        /* --- NEW --- Keyframes for a more vibrant, slower animated background */
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* --- NEW --- Keyframes for the button's glowing effect */
+        @keyframes glowing {
+            0% { box-shadow: 0 0 5px #e040fb, 0 0 10px #e040fb, 0 0 15px #e040fb; }
+            50% { box-shadow: 0 0 20px #76ff03, 0 0 30px #76ff03, 0 0 40px #76ff03; }
+            100% { box-shadow: 0 0 5px #e040fb, 0 0 10px #e040fb, 0 0 15px #e040fb; }
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            /* --- CHANGED --- Using a new font for a modern look */
+            font-family: 'Poppins', sans-serif;
             margin: 0;
             padding: 0;
-            background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
-                        url("https://images.unsplash.com/photo-1581092335264-4b8b5d4f7a19") no-repeat center center fixed;
-            background-size: cover;
+            /* --- CHANGED --- Using a much more colorful and vibrant gradient */
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientBG 18s ease infinite;
             color: white;
             display: flex;
             justify-content: center;
@@ -21,76 +40,87 @@
             -webkit-tap-highlight-color: transparent;
         }
 
-        body::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 0;
-        }
-
         .container {
             position: relative;
             z-index: 1;
             width: 90%;
-            max-width: 800px;
-            padding: 25px;
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            max-width: 600px; 
+            padding: 30px;
+            /* --- CHANGED --- Slightly more transparent background to show off the new BG */
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
             text-align: center;
             color: white;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         h1 {
-            font-size: clamp(24px, 3vw, 32px);
+            font-size: clamp(28px, 4vw, 40px);
+            font-weight: 700;
             margin-bottom: 5px;
-            text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.8);
+            /* --- NEW --- Animated gradient text effect! */
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradientBG 18s ease infinite;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: none;
         }
 
         .author {
             font-size: 14px;
-            font-weight: normal;
+            font-weight: 400;
             color: rgba(255, 255, 255, 0.7);
             display: block;
+            margin-top: -5px; /* Adjust position slightly */
+             -webkit-text-fill-color: rgba(255, 255, 255, 0.7); /* Fallback for author text */
         }
 
         .subtitle {
-            font-size: clamp(14px, 1.8vw, 18px);
-            margin-bottom: 20px;
+            font-size: clamp(16px, 1.8vw, 18px);
+            margin-bottom: 30px;
             color: rgba(255, 255, 255, 0.9);
+            font-weight: 400;
         }
 
-        .custom-file-upload {
-            display: block;
-            background: linear-gradient(135deg, #ff9800, #ff5722);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 6px;
+        #drop-area {
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            padding: 40px 20px;
+            background-color: rgba(0, 0, 0, 0.2);
             cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            margin: 10px auto;
-            transition: 0.3s;
-            box-shadow: 0 3px 8px rgba(255, 87, 34, 0.6);
-            border: none;
+            transition: all 0.3s ease;
         }
 
-        .custom-file-upload:hover {
-            background: linear-gradient(135deg, #e65100, #bf360c);
-            transform: translateY(-1px);
+        #drop-area p {
+            margin: 0;
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        #drop-area .upload-icon {
+            font-size: 40px;
+            margin-bottom: 15px;
+            transition: transform 0.3s ease;
+        }
+        
+        #drop-area:hover .upload-icon {
+            transform: scale(1.1);
+        }
+        
+        #drop-area.drag-over {
+            /* --- CHANGED --- More vibrant drag-over effect */
+            border-color: #76ff03;
+            background-color: rgba(118, 255, 3, 0.1);
+            transform: scale(1.02);
         }
 
         #fileLabel {
             display: block;
-            margin-top: 10px;
+            margin-top: 15px;
             font-size: 15px;
             color: rgba(255, 255, 255, 0.8);
             font-style: italic;
@@ -98,35 +128,45 @@
         }
 
         button {
-            background: linear-gradient(135deg, #007BFF, #0056b3);
+            /* --- CHANGED --- New vibrant gradient for the button */
+            background: linear-gradient(135deg, #e040fb, #007BFF);
             color: white;
-            padding: 14px 22px;
+            padding: 15px 25px;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             cursor: pointer;
-            margin-top: 15px;
-            font-size: 17px;
-            font-weight: bold;
-            transition: 0.3s;
-            box-shadow: 0 3px 8px rgba(0, 123, 255, 0.5);
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s ease;
             width: 100%;
             max-width: 300px;
+            /* --- NEW --- Applying the glowing animation */
+            animation: glowing 10s linear infinite;
         }
 
-        button:hover {
-            background: linear-gradient(135deg, #0056b3, #003f8a);
-            transform: translateY(-1px);
+        button:hover:not(:disabled) {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            animation: none; /* Turn off glow when disabled */
+            box-shadow: none;
+            transform: none;
         }
 
         #message {
             margin-top: 15px;
             font-size: 16px;
-            font-weight: bold;
-            padding: 8px;
+            font-weight: 600;
+            padding: 10px;
             border-radius: 5px;
-            background: rgba(255, 235, 59, 0.15);
             min-height: 20px;
-            transition: color 0.3s ease;
+            transition: all 0.3s ease;
         }
 
         .thank-you {
@@ -142,17 +182,12 @@
 
         @media (max-width: 480px) {
             .container {
-                padding: 15px;
+                padding: 20px;
                 margin: 10px;
             }
-            
             button {
-                font-size: 15px;
+                font-size: 16px;
                 padding: 12px 18px;
-            }
-            
-            .custom-file-upload {
-                font-size: 14px;
             }
         }
     </style>
@@ -163,12 +198,14 @@
         <p class="subtitle">Upload PDF and Generate Labels in Excel</p>
         
         <form id="uploadForm" enctype="multipart/form-data">
-            <label for="fileInput" class="custom-file-upload">
-                📂 Choose PDF Files
+            <div id="drop-area">
                 <input type="file" name="files" id="fileInput" multiple accept=".pdf" hidden>
-            </label>
+                <div class="upload-icon">📂</div>
+                <p>Drag & Drop PDF files here<br>or <strong>click to select</strong></p>
+            </div>
+            
             <span id="fileLabel">No files chosen</span>
-            <button type="button" onclick="uploadAndDownload()">📤 Upload & Generate Excel</button>
+            <button type="button" id="generateBtn" onclick="uploadAndDownload()">📤 Click To Generate Label</button>
         </form>
         
         <p id="message"></p>
@@ -177,15 +214,63 @@
     <p class="thank-you">Thank you for giving chance, Mr. Bryan</p>
 
     <script>
-        document.getElementById('fileInput').addEventListener('change', function() {
-            let fileLabel = document.getElementById('fileLabel');
-            fileLabel.innerText = this.files.length > 0 ? 
-                `${this.files.length} PDF file(s) selected` : "No files chosen";
+        // Get references to our elements
+        const fileInput = document.getElementById('fileInput');
+        const fileLabel = document.getElementById('fileLabel');
+        const dropArea = document.getElementById('drop-area');
+        const generateBtn = document.getElementById('generateBtn');
+
+        // This function updates the "X files selected" text
+        function updateFileLabel() {
+            const numFiles = fileInput.files.length;
+            if (numFiles > 0) {
+                fileLabel.innerText = `${numFiles} PDF file(s) selected`;
+                generateBtn.disabled = false;
+            } else {
+                fileLabel.innerText = "No files chosen";
+                generateBtn.disabled = true;
+            }
+        }
+        
+        dropArea.addEventListener('click', () => {
+            fileInput.click();
         });
+        
+        fileInput.addEventListener('change', updateFileLabel);
+
+        // --- Drag and Drop Logic ---
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.add('drag-over'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, () => dropArea.classList.remove('drag-over'), false);
+        });
+
+        dropArea.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            let dt = e.dataTransfer;
+            let files = dt.files;
+            fileInput.files = files;
+            updateFileLabel();
+        }
+        
+        updateFileLabel();
 
         function uploadAndDownload() {
             const formData = new FormData();
-            const files = document.getElementById('fileInput').files;
+            const files = fileInput.files;
             
             if (files.length === 0) {
                 setMessage('Please select PDF files first', '#ff5252');
@@ -200,7 +285,9 @@
                 formData.append('files', files[i]);
             }
 
-            setMessage('Uploading and generating Excel file...', '#4CAF50');
+            setMessage('Uploading and generating...', '#4CAF50');
+            generateBtn.disabled = true;
+            generateBtn.innerText = 'Generating...';
 
             fetch('/upload', { 
                 method: 'POST', 
@@ -208,29 +295,45 @@
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Error generating Excel file');
+                   return response.json().then(err => { throw new Error(err.message || 'Error generating file.'); });
                 }
-                return response.blob();
+                const disposition = response.headers.get('Content-Disposition');
+                let filename = 'Generated_Labels.xlsx';
+                if (disposition && disposition.indexOf('attachment') !== -1) {
+                    const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                    const matches = filenameRegex.exec(disposition);
+                    if (matches != null && matches[1]) {
+                      filename = matches[1].replace(/['"]/g, '');
+                    }
+                }
+                return response.blob().then(blob => ({ blob, filename }));
             })
-            .then(blob => {
+            .then(({ blob, filename }) => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
+                a.style.display = 'none';
                 a.href = url;
-                a.download = 'Generated_Labels.xlsx';
+                a.download = filename;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
-                setMessage('Excel file downloaded successfully!', '#4CAF50');
+                a.remove();
+                setMessage('Download successful!', '#76ff03');
             })
             .catch(error => {
                 setMessage(error.message, '#ff5252');
                 console.error('Error:', error);
+            })
+            .finally(() => {
+                generateBtn.disabled = false;
+                generateBtn.innerText = '📤 Generate Excel';
             });
         }
 
         function setMessage(msg, color) {
             const message = document.getElementById('message');
             message.innerText = msg;
+            message.style.background = color + '30';
             message.style.color = color;
         }
     </script>
